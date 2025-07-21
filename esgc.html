@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ESGCA - Smart Attendance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f2f2f2;
+      padding: 20px;
+    }
+    h2 {
+      color: #00509E;
+    }
+    .hidden {
+      display: none;
+    }
+    input, select, button {
+      display: block;
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+      max-width: 300px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    .btn {
+      background: #00509E;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .section {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Choice -->
+  <div id="home">
+    <h2>Welcome to ESGCA</h2>
+    <button onclick="show('adminLogin')">Login as Admin</button>
+    <button onclick="show('teacherLogin')">Login as Teacher</button>
+  </div>
+
+  <!-- Admin Login -->
+  <div id="adminLogin" class="hidden">
+    <h2>Admin Login</h2>
+    <input type="text" id="adminUser" placeholder="Username" />
+    <input type="password" id="adminPass" placeholder="Password" />
+    <button onclick="login('admin')">Login</button>
+    <button onclick="backHome()">← Back</button>
+  </div>
+
+  <!-- Teacher Login -->
+  <div id="teacherLogin" class="hidden">
+    <h2>Teacher Login</h2>
+    <input type="text" id="teacherUser" placeholder="Username" />
+    <input type="password" id="teacherPass" placeholder="Password" />
+    <input type="text" id="assignedClass" placeholder="Assigned Class (e.g., JSS2 Blue)" />
+    <button onclick="login('teacher')">Login</button>
+    <button onclick="backHome()">← Back</button>
+  </div>
+
+  <!-- Admin Dashboard -->
+  <div id="adminDashboard" class="hidden">
+    <h2>Admin Dashboard</h2>
+    <button onclick="show('register')">Register Student</button>
+    <button onclick="show('mark')">Mark Student Attendance</button>
+    <button onclick="show('students')">View Students</button>
+    <button onclick="show('summary')">Attendance Summary</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Teacher Dashboard -->
+  <div id="teacherDashboard" class="hidden">
+    <h2>Teacher Dashboard</h2>
+    <button onclick="show('register')">Register Student</button>
+    <button onclick="show('mark')">Mark Attendance</button>
+    <button onclick="show('students')">View Students</button>
+    <button onclick="show('summary')">Class Summary</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Register Student -->
+  <div id="register" class="hidden section">
+    <h2>Register New Student</h2>
+    <input type="text" id="studentName" placeholder="Full Name" />
+    <input type="number" id="studentAge" placeholder="Age" />
+    <select id="studentGender">
+      <option value="">Select Gender</option>
+      <option>Male</option>
+      <option>Female</option>
+    </select>
+    <input type="text" id="studentClass" placeholder="Class" />
+    <button onclick="registerStudent()">Register</button>
+  </div>
+
+  <!-- Mark Attendance -->
+  <div id="mark" class="hidden section">
+    <h2>Mark Attendance</h2>
+    <div id="attendanceList"></div>
+    <button onclick="submitAttendance()">Submit Attendance</button>
+  </div>
+
+  <!-- View Students -->
+  <div id="students" class="hidden section">
+    <h2>Registered Students</h2>
+    <ul id="studentList"></ul>
+  </div>
+
+  <!-- Summary -->
+  <div id="summary" class="hidden section">
+    <h2>Attendance Summary</h2>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Present</th><th>Absent</th></tr>
+      </thead>
+      <tbody id="summaryTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    let currentRole = '';
+    let currentClass = '';
+
+    function show(id) {
+      document.querySelectorAll("div").forEach(div => div.classList.add("hidden"));
+      document.getElementById(id).classList.remove("hidden");
+      if (id === 'mark') loadAttendanceForm();
+      if (id === 'students') loadStudentList();
+      if (id === 'summary') loadSummary();
+    }
+
+    function backHome() {
+      show('home');
+    }
+
+    function logout() {
+      currentRole = '';
+      currentClass = '';
+      show('home');
+    }
+
+    function login(role) {
+      if (role === 'admin') {
+        const u = document.getElementById("adminUser").value;
+        const p = document.getElementById("adminPass").value;
+        if (u === "admin" && p === "1234") {
+          currentRole = "admin";
+          show("adminDashboard");
+        } else {
+          alert("Wrong admin credentials");
+        }
+      } else {
+        const u = document.getElementById("teacherUser").value;
+        const p = document.getElementById("teacherPass").value;
+        const c = document.getElementById("assignedClass").value;
+        if (u === "teacher" && p === "4321" && c) {
+          currentRole = "teacher";
+          currentClass = c;
+          show("teacherDashboard");
+        } else {
+          alert("Wrong teacher credentials or class missing");
+        }
+      }
+    }
+
+    function registerStudent() {
+      const name = document.getElementById("studentName").value;
+      const age = document.getElementById("studentAge").value;
+      const gender = document.getElementById("studentGender").value;
+      const cls = document.getElementById("studentClass").value;
+      if (!name || !age || !gender || !cls) return alert("Fill all fields");
+
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      students.push({ name, age, gender, class: cls });
+      localStorage.setItem("students", JSON.stringify(students));
+      alert("Student registered!");
+      document.getElementById("studentName").value = "";
+      document.getElementById("studentAge").value = "";
+      document.getElementById("studentGender").value = "";
+      document.getElementById("studentClass").value = "";
+    }
+
+    function loadStudentList() {
+      const ul = document.getElementById("studentList");
+      ul.innerHTML = "";
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      const filtered = currentRole === "admin" ? students : students.filter(s => s.class === currentClass);
+      filtered.forEach(s => {
+        const li = document.createElement("li");
+        li.textContent = `${s.name} (${s.class}) - ${s.gender}, Age ${s.age}`;
+        ul.appendChild(li);
+      });
+    }
+
+    function loadAttendanceForm() {
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      const filtered = currentRole === "admin" ? students : students.filter(s => s.class === currentClass);
+      const div = document.getElementById("attendanceList");
+      div.innerHTML = "";
+      filtered.forEach((s, i) => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" id="att${i}" checked> ${s.name}`;
+        div.appendChild(label);
+        div.appendChild(document.createElement("br"));
+      });
+    }
+
+    function submitAttendance() {
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      const filtered = currentRole === "admin" ? students : students.filter(s => s.class === currentClass);
+      const summary = JSON.parse(localStorage.getItem("summary") || "{}");
+      filtered.forEach((s, i) => {
+        const id = `att${i}`;
+        const present = document.getElementById(id).checked;
+        if (!summary[s.name]) summary[s.name] = { present: 0, absent: 0 };
+        present ? summary[s.name].present++ : summary[s.name].absent++;
+      });
+      localStorage.setItem("summary", JSON.stringify(summary));
+      alert("Attendance marked!");
+    }
+
+    function loadSummary() {
+      const summary = JSON.parse(localStorage.getItem("summary") || "{}");
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      const tbody = document.getElementById("summaryTable");
+      tbody.innerHTML = "";
+      students.forEach(s => {
+        if (currentRole === "teacher" && s.class !== currentClass) return;
+        const record = summary[s.name] || { present: 0, absent: 0 };
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${s.name}</td><td>${record.present}</td><td>${record.absent}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+  </script>
+</body>
+</html>
